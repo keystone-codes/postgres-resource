@@ -1,0 +1,81 @@
+#!/bin/sh
+# Stand-in for psql. Records arguments, stdin, and PG* variables.
+# FAKE_PSQL_SCENARIO selects a failure: auth_fail, foreign_owner, missing_extension.
+set -eu
+
+log=${FAKE_PSQL_LOG:-/dev/null}
+stdin_log=${FAKE_PSQL_STDIN:-/dev/null}
+env_log=${FAKE_PSQL_ENV:-/dev/null}
+
+printf '%s\n' "$*" >>"$log"
+
+{
+  printf '%s\n' "---"
+  printf '%s\n' "argv:$*"
+  printf 'PGHOST=%s\n' "${PGHOST-}"
+  printf 'PGPORT=%s\n' "${PGPORT-}"
+  printf 'PGUSER=%s\n' "${PGUSER-}"
+  printf 'PGPASSWORD=%s\n' "${PGPASSWORD-}"
+  printf 'PGDATABASE=%s\n' "${PGDATABASE-}"
+  printf 'PGCONNECT_TIMEOUT=%s\n' "${PGCONNECT_TIMEOUT-}"
+} >>"$env_log"
+
+stdin=$(cat || true)
+printf '%s\n' "$stdin" >>"$stdin_log"
+
+root=${FAKE_PKG_ROOT:-/pkg}
+while IFS= read -r line; do
+  case "$line" in
+    \\ir\ *)
+      path=${line#\\ir }
+      case "$path" in
+        /pkg/*)
+          path="${root}/${path#/pkg/}"
+          ;;
+      esac
+      if [ -f "$path" ]; then
+        printf '\n' >>"$stdin_log"
+        cat "$path" >>"$stdin_log"
+      fi
+      ;;
+  esac
+done <<EOF
+$stdin
+EOF
+
+scenario=${FAKE_PSQL_SCENARIO:-ok}
+
+case "$*" in
+  *'select 1'*)
+    if [ "$scenario" = "auth_fail" ]; then
+      printf '%s\n' 'password authentication failed for user "keystone_admin"' >&2
+      exit 2
+    fi
+    printf '%s\n' 1
+    exit 0
+    ;;
+esac
+
+case "$stdin $*" in
+  *pg_available_extensions*)
+    if [ "$scenario" = "missing_extension" ]; then
+      exit 0
+    fi
+    printf '%s\n' 1
+    exit 0
+    ;;
+esac
+
+case "$*" in
+  *current_user*)
+    printf '%s|%s|t\n' "${PGUSER-}" "${PGDATABASE-}"
+    exit 0
+    ;;
+esac
+
+if [ "$scenario" = "foreign_owner" ]; then
+  printf '%s\n' 'ERROR:  division by zero' >&2
+  exit 3
+fi
+
+exit 0
