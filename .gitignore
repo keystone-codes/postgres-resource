@@ -16,6 +16,8 @@ htmlcov/
 .env
 .env.*
 !.env.example
+admin.env
+/out/
 .DS_Store
 .idea/
 .vscode/
