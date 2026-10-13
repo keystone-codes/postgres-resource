@@ -262,6 +262,9 @@ def run_provision(server: Server, consumer: str, extensions: str = "") -> Provis
         "docker",
         "run",
         "--rm",
+        # The image's postgres user would own the mode-600 file, which the operator cannot read.
+        "--user",
+        f"{os.getuid()}:{os.getgid()}",
         "--network",
         server.network,
         "-e",
@@ -443,6 +446,8 @@ def test_wrong_admin_password_exits_3(server: Server) -> None:
         "docker",
         "run",
         "--rm",
+        "--user",
+        f"{os.getuid()}:{os.getgid()}",
         "--network",
         server.network,
         "-e",
