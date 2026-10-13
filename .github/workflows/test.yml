@@ -1,0 +1,56 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  KEYSTONECTL_GIT_SHA: 468e3500101fb63de32eecb7dbcf2408b92b65d4
+
+jobs:
+  shell:
+    name: shellcheck and bats
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install shellcheck and bats
+        run: sudo apt-get update && sudo apt-get install -y shellcheck bats
+
+      - name: shellcheck
+        run: shellcheck -s sh provision.sh tests/fake-psql tests/fake-pg_isready
+
+      - name: bats
+        run: bats tests/provision.bats
+
+  package-lint:
+    name: Package lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+
+      - name: keystonectl lint
+        run: |
+          uvx --from "git+https://github.com/keystone-codes/keystonectl@${KEYSTONECTL_GIT_SHA}" \
+            keystonectl lint keystone-service.yaml
+
+  integration:
+    name: Integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Integration tests
+        run: uv run pytest -q -m integration
