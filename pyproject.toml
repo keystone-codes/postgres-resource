@@ -1,0 +1,31 @@
+[project]
+name = "postgres-resource"
+version = "1.0.0"
+description = "Integration tests for the postgres/v1 resource package."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "psycopg[binary]>=3.2",
+    "pytest>=8.3",
+    "ruff>=0.9",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: Docker-backed checks",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["tests"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]

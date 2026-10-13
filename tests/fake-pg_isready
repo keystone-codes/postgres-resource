@@ -1,0 +1,10 @@
+#!/bin/sh
+# Stand-in for pg_isready. FAKE_PG_ISREADY_SCENARIO=not_ready keeps the server down.
+set -eu
+
+if [ "${FAKE_PG_ISREADY_SCENARIO:-ok}" = "not_ready" ]; then
+  printf '%s\n' 'no response' >&2
+  exit 1
+fi
+
+exit 0

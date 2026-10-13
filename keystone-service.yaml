@@ -1,0 +1,38 @@
+schema_version: 1
+kind: resource
+name: postgres
+version: "1.0.0"
+publisher: keystone-codes
+summary: PostgreSQL 16 for services that need a postgres resource; one database and one user per consumer.
+homepage: https://github.com/keystone-codes/postgres-resource
+
+provides: {kind: postgres, version: 1, container: db}
+
+containers:
+  db:
+    # 16.15-alpine3.24
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+    port: 5432
+    env:
+      - name: POSTGRES_USER
+        default: keystone_admin
+      - name: POSTGRES_DB
+        default: postgres
+    volumes:
+      - {name: data, path: /var/lib/postgresql/data}
+    secrets:
+      - {name: POSTGRES_PASSWORD, generate: {bytes: 32}}
+    # TCP, not the Unix socket: during the first init the server accepts
+    # socket connections before it listens on 5432. -U matches POSTGRES_USER
+    # (the image account is postgres, which this package does not create).
+    healthcheck:
+      command: [pg_isready, -h, 127.0.0.1, -p, "5432", -U, keystone_admin]
+      interval: 10s
+      start_period: 30s
+
+provision:
+  per_consumer: database_and_user
+  # 16.15-alpine3.24 — same digest as containers.db.image so psql matches the server.
+  image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+  script: provision.sh
+  admin_env: {user: POSTGRES_USER, password: POSTGRES_PASSWORD}
