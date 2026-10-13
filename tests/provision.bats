@@ -45,7 +45,8 @@ assert_absent() {
 }
 
 mode_of() {
-  stat -f %OLp "$1" 2>/dev/null || stat -c %a "$1"
+  # GNU stat treats -f as a filesystem query and exits 0, so try it second.
+  stat -c %a "$1" 2>/dev/null || stat -f %OLp "$1"
 }
 
 @test "creates role, database, grants and prints json" {
