@@ -8,7 +8,7 @@ permissions:
   contents: read
 
 env:
-  KEYSTONECTL_GIT_SHA: 468e3500101fb63de32eecb7dbcf2408b92b65d4
+  KEYSTONECTL_GIT_SHA: d88e4753b4f118bc73cf0b36bd2305988b0f6820
 
 jobs:
   shell:
